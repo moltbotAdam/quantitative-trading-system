@@ -52,4 +52,154 @@ make
 
 ## License
 
-MIT License
+MIT License# Trading System Architecture Documentation
+
+## System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           TRADING SYSTEM                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌──────────────────────┐    ┌─────────────────┐   │
+│  │   Exchanges     │◄──►│ Connectivity Layer   │◄──►│ Order Management│   │
+│  │ (China, HK, US) │    │ - FIX Protocol       │    │ System (OMS)    │   │
+│  └─────────────────┘    │ - Auth/Session Mgmt  │    │ - Order Lifecycle│  │
+│                         │ - Multi-market supp  │    │ - State tracking │  │
+│  ┌─────────────────┐    └──────────────────────┘    └─────────────────┘   │
+│  │ Market Data     │                                    ▲                  │
+│  │ Feeds          │►►►┐                              │                  │
+│  └─────────────────┘   │    ┌─────────────────┐      │    ┌─────────────────┐│
+│                        ├───►│ Market Data     │►►►►►►┼────┤ Risk Management ││
+│                        │    │ Handler         │      │    │ - Limits        ││
+│                        │    │ - Subscriptions │      │    │ - Controls      ││
+│                        │    │ - Normalization │      │    │ - Monitoring    ││
+│                        │    └─────────────────┘      │    └─────────────────┘│
+│                        │                             │                     │
+│                        │    ┌─────────────────┐      │                     │
+│                        └───►│ Strategy Engine │──────┘                     │
+│                             │ - Algorithms    │                           │
+│                             │ - Signal Gen    │                           │
+│                             │ - Multi-strategy│                           │
+│                             └─────────────────┘                           │
+│                                  │                                        │
+│                                  ▼                                        │
+│                         ┌──────────────────────┐                          │
+│                         │ Execution Management │                          │
+│                         │ System (EMS)         │                          │
+│                         │ - Order Routing      │                          │
+│                         │ - Exchange Comm      │                          │
+│                         │ - Fill Processing    │                          │
+│                         └──────────────────────┘                          │
+│                                  │                                        │
+│                                  ▼                                        │
+│                         ┌──────────────────────┐                          │
+│                         │ Position & P&L Mgmt  │                          │
+│                         │ - Real-time Updates  │                          │
+│                         │ - Performance Stats  │                          │
+│                         └──────────────────────┘                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Data Flow Diagram
+
+```
+┌─────────────────┐
+│ Market Data     │
+│ Feeds           │
+│ (Real-time)     │
+└───────┬─────────┘
+        │
+        │ Tick Data (instrument_id, bid/ask, sizes, timestamp)
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     MARKET DATA HANDLER                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Normalize market data formats                                             │
+│ • Validate tick data                                                        │
+│ • Filter by subscriptions                                                   │
+│ • Distribute to subscribers                                                 │
+└─────────┬───────────────────────────────────────────────────────────────────┘
+          │
+          │ Processed Tick Data
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        STRATEGY ENGINE                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Run quantitative algorithms                                               │
+│ • Process market data                                                       │
+│ • Generate trading signals                                                  │
+│ • Execute multiple strategies                                               │
+└─────────┬───────────────────────────────────────────────────────────────────┘
+          │
+          │ Trading Signals/Orders
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      RISK MANAGEMENT                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Check position limits                                                     │
+│ • Validate order values                                                     │
+│ • Monitor daily losses                                                      │
+│ • Enforce rate limiting                                                     │
+└─────────┬───────────────────────────────────────────────────────────────────┘
+          │
+          │ Validated Orders (or Rejected)
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   ORDER MANAGEMENT SYSTEM                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Track order lifecycle                                                     │
+│ • Maintain order state                                                      │
+│ • Handle modifications/cancellations                                        │
+│ • Update order book                                                         │
+└─────────┬───────────────────────────────────────────────────────────────────┘
+          │
+          │ Confirmed Orders
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 EXECUTION MANAGEMENT SYSTEM                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Route orders to exchanges                                                 │
+│ • Handle FIX protocol communications                                        │
+│ • Process acknowledgments/fills                                             │
+│ • Manage exchange connections                                               │
+└─────────┬───────────────────────────────────────────────────────────────────┘
+          │
+          │ Fill Reports
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     POSITION & P&L MGMT                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Update positions in real-time                                             │
+│ • Calculate profit & loss                                                   │
+│ • Generate performance statistics                                           │
+│ • Feed back to risk management                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Component Interactions
+
+1. **Market Data Handler** receives data from exchanges via the Connectivity Layer and distributes it to the Strategy Engine.
+
+2. **Strategy Engine** processes market data and generates trading signals/orders, sending them to Risk Management.
+
+3. **Risk Management** validates orders against risk parameters and forwards approved orders to Order Management System.
+
+4. **Order Management System** manages the order lifecycle and forwards orders to Execution Management System.
+
+5. **Execution Management System** routes orders to exchanges via the Connectivity Layer and processes fill reports.
+
+6. **Position & P&L Management** updates positions based on fills and feeds back to Risk Management for ongoing monitoring.
+
+## Key Design Principles
+
+- **Modularity**: Each component is independent and can be updated without affecting others
+- **Low Latency**: Optimized for microsecond-level performance
+- **Scalability**: Can handle multiple markets and instruments simultaneously
+- **Fault Tolerance**: Isolated failures don't bring down the entire system
+- **Maintainability**: Clean, well-documented code following "less is more" principle
