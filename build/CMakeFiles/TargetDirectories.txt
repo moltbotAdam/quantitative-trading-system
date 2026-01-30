@@ -1,0 +1,7 @@
+/root/clawd/trading_system/build/CMakeFiles/trading_system.dir
+/root/clawd/trading_system/build/CMakeFiles/edit_cache.dir
+/root/clawd/trading_system/build/CMakeFiles/rebuild_cache.dir
+/root/clawd/trading_system/build/CMakeFiles/list_install_components.dir
+/root/clawd/trading_system/build/CMakeFiles/install.dir
+/root/clawd/trading_system/build/CMakeFiles/install/local.dir
+/root/clawd/trading_system/build/CMakeFiles/install/strip.dir
